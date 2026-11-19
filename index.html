@@ -565,8 +565,16 @@ function openForm(r) {
     if (t === 'money' || t === 'number') ctl = `<input type="number" step="any" ${name} value="${esc(v)}">`;
     else if (t === 'date') ctl = `<input type="date" ${name} value="${esc(String(v).slice(0, 10))}">`;
     else if (t === 'tag') {
-      const opts = [...new Set(d.rows.flatMap(x => isEmpty(x[h]) ? [] : splitTags(x[h])))];
-      ctl = `<input ${name} value="${esc(v)}" list="dl-${esc(h)}" placeholder="多個值用逗號分隔"><datalist id="dl-${esc(h)}">${opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
+      const opts = [...new Set(d.rows.flatMap(x => isEmpty(x[h]) ? [] : splitTags(x[h])))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+      const multi = d.rows.some(x => !isEmpty(x[h]) && splitTags(x[h]).length > 1);
+      if (!multi) {
+        // 單一值的標籤欄：真正的下拉選單，最後一項可以新增其他值
+        const cur = String(v), list = ['', ...opts, ...(cur && !opts.includes(cur) ? [cur] : [])];
+        ctl = `<select ${name} data-tagsel>${list.map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${o === '' ? '（未填）' : esc(o)}</option>`).join('')}<option value="__new__">＋ 新增其他…</option></select>`;
+      } else {
+        // 可以放多個值（逗號分隔）的欄位：文字框＋建議清單，點進去時顯示全部選項
+        ctl = `<input ${name} value="${esc(v)}" list="dl-${esc(h)}" placeholder="多個值用逗號分隔" data-multi autocomplete="off"><datalist id="dl-${esc(h)}">${opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
+      }
     } else if (t === 'image') {
       const u = imgUrl(v);
       ctl = `<input ${name} value="${esc(v)}" placeholder="貼上圖片網址，或直接 Ctrl+V 貼上截圖" data-img autocomplete="off">
@@ -590,6 +598,24 @@ function openForm(r) {
     if (!u) { if (p) p.remove(); return; }
     if (!p) { p = document.createElement('img'); p.className = 'img-prev'; p.referrerPolicy = 'no-referrer'; e.target.parentNode.appendChild(p); }
     p.src = u;
+  });
+  // 下拉選單選「＋ 新增其他…」時，輸入新的值
+  form.querySelectorAll('[data-tagsel]').forEach(sel => {
+    let prev = sel.value;
+    sel.addEventListener('change', () => {
+      if (sel.value !== '__new__') { prev = sel.value; return; }
+      const nv = (prompt('輸入新的「' + sel.name + '」') || '').trim();
+      if (!nv) { sel.value = prev; return; }
+      let opt = [...sel.options].find(o => o.value === nv);
+      if (!opt) { opt = new Option(nv, nv); sel.insertBefore(opt, sel.lastElementChild); }
+      sel.value = prev = nv;
+    });
+  });
+  // 多值欄位：datalist 會依目前文字過濾，所以點進去時暫時清空來顯示全部選項，離開時沒改就還原
+  form.querySelectorAll('[data-multi]').forEach(inp => {
+    let keep = null;
+    inp.addEventListener('focus', () => { if (inp.value) { keep = inp.value; inp.placeholder = keep; inp.value = ''; } });
+    inp.addEventListener('blur', () => { if (!inp.value && keep !== null) inp.value = keep; keep = null; inp.placeholder = '多個值用逗號分隔'; });
   });
   let pending = null;   // 圖片還在上傳時，按儲存會先等它完成
   if (imgInput) {
