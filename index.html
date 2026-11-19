@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的收藏庫</title>
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f6f6f4;--panel:#fff;--text:#1f1f1f;--muted:#6b6b6b;--line:#e4e4e0;--accent:#2f6fde;--accent-text:#fff;
+  --danger:#d13c3c;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.04);
+  --t-gray:#e9e9e7;--t-gray-f:#555;--t-brown:#f1e5dc;--t-brown-f:#6e4a33;--t-orange:#fbe4d0;--t-orange-f:#8a4b15;
+  --t-yellow:#fbf0c9;--t-yellow-f:#7a5c00;--t-green:#dcefe2;--t-green-f:#1f6b3a;--t-blue:#dbe8f8;--t-blue-f:#1d4f91;
+  --t-purple:#ebe2f6;--t-purple-f:#5b3a8c;--t-pink:#f7e0ec;--t-pink-f:#8e2c5c;--t-red:#f9dcdc;--t-red-f:#9b2424;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#191919;--panel:#232323;--text:#ececec;--muted:#9a9a9a;--line:#333;--accent:#5b8ff0;--shadow:0 1px 3px rgba(0,0,0,.4);
+  --t-gray:#3a3a3a;--t-gray-f:#cfcfcf;--t-brown:#43342a;--t-brown-f:#e2c4ad;--t-orange:#4d3420;--t-orange-f:#f2bb8a;
+  --t-yellow:#4a4020;--t-yellow-f:#efd77e;--t-green:#22402c;--t-green-f:#8fd3a5;--t-blue:#213650;--t-blue-f:#93bdf0;
+  --t-purple:#382b4a;--t-purple-f:#c7aef0;--t-pink:#4a2a3a;--t-pink-f:#f0a8c9;--t-red:#4d2525;--t-red-f:#f2a0a0;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.danger{color:var(--danger)}
+input,select,textarea{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 10px;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:16px}
+.login-box{background:var(--panel);padding:28px;border-radius:14px;box-shadow:var(--shadow);width:100%;max-width:340px}
+.login-box h1{margin:0 0 4px;font-size:22px}
+.login-box p{margin:0 0 18px;color:var(--muted);font-size:13px}
+.login-box label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.login-box input{width:100%;padding:10px}
+.login-box .btn{width:100%;margin-top:18px;padding:10px}
+.err{color:var(--danger);font-size:13px;min-height:20px;margin-top:8px}
+.demo-note{font-size:12px;color:var(--muted);margin-top:12px;text-align:center}
+
+/* app */
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar{max-width:1280px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.bar h1{font-size:18px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who{color:var(--muted);font-size:13px}
+.tabs{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;gap:4px;overflow-x:auto}
+.tab{border:0;background:none;padding:8px 12px;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap}
+.tab.on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+main{max-width:1280px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border-radius:10px;padding:10px 14px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:13px}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.chip small{opacity:.65;margin-left:4px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar .search{flex:1 1 200px}
+.toolbar select{max-width:170px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:7px 11px}
+.seg button.on{background:var(--text);color:var(--bg)}
+.count{color:var(--muted);font-size:13px;margin-bottom:8px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.card{background:var(--panel);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;min-width:0;transition:transform .12s}
+.card:hover{transform:translateY(-2px)}
+.cover{aspect-ratio:1/1;background:var(--line);position:relative;overflow:hidden}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.ph{width:100%;height:100%;display:grid;place-items:center;font-size:44px;font-weight:700;color:#fff}
+.flag{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;padding:2px 7px;border-radius:6px}
+.card-body{padding:10px 12px 12px;min-width:0}
+.card-title{font-weight:600;font-size:14px;line-height:1.35;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:11.5px;padding:1px 7px;border-radius:5px;background:var(--t-gray);color:var(--t-gray-f);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.card-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+.table-wrap{overflow-x:auto;background:var(--panel);border-radius:12px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-weight:600;color:var(--muted);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--bg)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td .thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;display:block}
+td .thumb.ph{font-size:16px}
+td.title{font-weight:600;white-space:normal;min-width:180px}
+
+.empty{text-align:center;color:var(--muted);padding:60px 0}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;z-index:20}
+.dialog{background:var(--panel);border-radius:14px;width:100%;max-width:640px;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.dlg-head{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.dlg-head h2{flex:1;margin:0;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlg-body{padding:16px}
+.detail-img{width:100%;max-height:360px;object-fit:contain;border-radius:10px;background:var(--bg);margin-bottom:14px;display:block}
+.fields{display:grid;grid-template-columns:110px 1fr;gap:8px 14px;font-size:14px}
+.fields dt{color:var(--muted)}
+.fields dd{margin:0;word-break:break-word}
+.fields a{color:var(--accent)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.form-grid label.wide{grid-column:1/-1}
+.form-grid label.check{flex-direction:row;align-items:center;gap:8px;color:var(--text)}
+.form-grid input,.form-grid textarea,.form-grid select{color:var(--text);width:100%}
+.form-grid label.check input{width:auto;margin:0}
+.form-grid textarea{min-height:70px;resize:vertical}
+.img-prev{max-width:120px;max-height:120px;border-radius:8px;margin-top:6px}
+.img-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.img-tools .btn{padding:6px 10px;font-size:13px;color:var(--text)}
+.img-note{font-size:12px;color:var(--muted);margin-top:6px;font-weight:400}
+.img-note:empty{display:none}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.dlg-foot .spacer{flex:1}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.loading{opacity:.5;pointer-events:none}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:600px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .card-body{padding:8px 9px 10px}
+  .toolbar select{max-width:none;flex:1 1 40%}
+  .who{display:none}
+  .form-grid{grid-template-columns:1fr}
+  .fields{grid-template-columns:90px 1fr}
+  .stat b{font-size:17px}
+}
+</style>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <form class="login-box" id="loginForm">
+    <h1 id="loginTitle">我的收藏庫</h1>
+    <p>輸入名稱和 PIN 登入</p>
+    <label for="lgName">名稱</label>
+    <input id="lgName" autocomplete="username" required>
+    <label for="lgPin">PIN</label>
+    <input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password" required>
+    <button class="btn primary" id="lgBtn">登入</button>
+    <div class="err" id="lgErr"></div>
+    <div class="demo-note hidden" id="demoNote">示範模式（尚未設定 API_URL）：admin / 1234</div>
+  </form>
+</section>
+
+<section id="app" class="hidden">
+  <header>
+    <div class="bar">
+      <h1 id="appTitle"></h1>
+      <span class="who" id="who"></span>
+      <button class="btn" id="refreshBtn" title="重新載入">↻</button>
+      <button class="btn" id="logoutBtn">登出</button>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </header>
+  <main id="main">
+    <div class="stats" id="stats"></div>
+    <div class="chips" id="chips"></div>
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="搜尋…">
+      <span id="filters" style="display:contents"></span>
+      <select id="sortCol" aria-label="排序欄位"></select>
+      <button class="btn" id="sortDir" title="切換升冪/降冪">↓</button>
+      <div class="seg" id="viewSeg">
+        <button data-v="grid" class="on" title="卡片">▦</button>
+        <button data-v="table" title="表格">☰</button>
+      </div>
+      <button class="btn primary hidden" id="addBtn">＋ 新增</button>
+    </div>
+    <div class="count" id="count"></div>
+    <div id="content"></div>
+  </main>
+</section>
+
+<div class="modal hidden" id="modal"><div class="dialog" id="dialog"></div></div>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [] }, window.APP_CONFIG || {});
+const DEMO = !CFG.API_URL || /[?&]demo=1/.test(location.search);
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+
+const S = {
+  token: LS.get('cdb_token'), user: null, sheets: [], sheet: LS.get('cdb_sheet'),
+  data: {}, view: LS.get('cdb_view') || 'grid', search: '', group: -1, tagFilters: {},
+  sortCol: '', sortDir: 1
+};
+
+/* ---------------- API ---------------- */
+async function api(action, payload) {
+  const body = Object.assign({ action, token: S.token }, payload || {});
+  let j;
+  if (DEMO) j = await Mock.call(body);
+  else {
+    const res = await fetch(CFG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+    j = await res.json();
+  }
+  if (!j.ok) {
+    if (j.code === 'AUTH') { logout(true); }
+    throw new Error(j.error || '發生錯誤');
+  }
+  return j;
+}
+
+/* ---------------- 欄位分析 ---------------- */
+const TAG_RE = /品牌|廠牌|系列|狀態|標籤|類型|分類|版本|種類|比例|適用|tag|brand|series|status|type|category|kind/i;
+const IMG_RE = /圖|image|img|photo|封面|cover|照片|files/i;
+const MONEY_RE = /價|金額|price|cost|費用|NT/i;
+const DATE_RE = /日期|date|時間/i;
+const TITLE_RE = /^(名稱|name|title|品名|標題)$/i;
+const isEmpty = v => v === '' || v == null;
+const isBoolish = v => v === true || v === false || /^(true|false)$/i.test(String(v));
+const splitTags = v => String(v).split(/\s*[,，、]\s*/).filter(Boolean);
+
+function analyze(headers, rows) {
+  const cols = {};
+  headers.forEach(h => {
+    const vals = rows.map(r => r[h]).filter(v => !isEmpty(v));
+    let type = 'text';
+    if (h.charAt(0) === '_') type = 'hidden';
+    else if (vals.length && vals.every(isBoolish)) type = 'bool';
+    else if (IMG_RE.test(h)) type = 'image';
+    else if (MONEY_RE.test(h)) type = 'money';
+    else if (DATE_RE.test(h) || (vals.length && vals.every(v => /^\d{4}-\d{2}-\d{2}/.test(v)))) type = 'date';
+    else if (vals.length && vals.every(v => typeof v === 'number' || /^-?\d+(\.\d+)?$/.test(v))) type = 'number';
+    else if (vals.length && vals.every(v => /^https?:\/\//.test(v))) type = 'url';
+    else if (TAG_RE.test(h) || CFG.STATUS_GROUPS[h]) type = 'tag';
+    else if (vals.length >= 4) {
+      const all = vals.flatMap(splitTags);
+      const distinct = new Set(all).size;
+      const avg = all.reduce((a, b) => a + String(b).length, 0) / all.length;
+      if (distinct <= 30 && distinct <= Math.max(3, vals.length * 0.4) && avg <= 20) type = 'tag';
+    }
+    cols[h] = type;
+  });
+  let title = headers.find(h => TITLE_RE.test(h)) || headers.find(h => cols[h] === 'text') || headers[0];
+  if (title) cols[title] = 'title';
+  const image = headers.find(h => cols[h] === 'image');
+  const status = headers.find(h => CFG.STATUS_GROUPS[h]);
+  return { cols, title, image, status };
+}
+
+/* ---------------- 顯示小工具 ---------------- */
+function imgUrl(u) {
+  u = String(u || '').trim();
+  if (!u) return '';
+  if (u.startsWith('data:image/')) return u;
+  const first = u.split(/\s*[,\n]\s*/).find(x => /^https?:/.test(x)) || '';
+  const m = first.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
+  return m ? 'https://lh3.googleusercontent.com/d/' + m[1] + '=w800' : first;
+}
+function hue(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+function placeholder(name, cls) {
+  const ch = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+  return `<div class="ph ${cls || ''}" style="background:hsl(${hue(name)} 45% 55%)">${esc(ch)}</div>`;
+}
+function tagHtml(v) {
+  const color = CFG.TAG_COLORS[v];
+  const st = color ? ` style="background:var(--t-${color});color:var(--t-${color}-f)"` : '';
+  return `<span class="tag"${st}>${esc(v)}</span>`;
+}
+function money(v) {
+  const n = Number(v);
+  return isNaN(n) ? esc(v) : 'NT$ ' + n.toLocaleString('zh-TW');
+}
+function truthy(v) { return v === true || /^(true|yes|1|是|v)$/i.test(String(v)); }
+function fmt(type, v) {
+  if (isEmpty(v)) return '<span style="color:var(--muted)">—</span>';
+  switch (type) {
+    case 'bool': return truthy(v) ? '✓' : '✗';
+    case 'money': return money(v);
+    case 'tag': return `<span class="tags">${splitTags(v).map(tagHtml).join('')}</span>`;
+    case 'url': return `<a href="${esc(v)}" target="_blank" rel="noopener">${esc(v.length > 50 ? v.slice(0, 50) + '…' : v)}</a>`;
+    case 'image': { const u = imgUrl(v); return u ? `<a href="${esc(u)}" target="_blank" rel="noopener">開啟圖片</a>` : esc(v); }
+    default: {
+      const s = String(v);
+      return /^https?:\/\/\S+$/.test(s) ? `<a href="${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a>` : esc(s).replace(/\n/g, '<br>');
+    }
+  }
+}
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), 2600);
+}
+
+/* ---------------- 登入 ---------------- */
+function showLogin(msg) {
+  $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
+  $('#lgErr').textContent = msg || '';
+  $('#demoNote').classList.toggle('hidden', !DEMO);
+  setTimeout(() => $('#lgName').focus(), 0);
+}
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#lgBtn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  $('#lgErr').textContent = '';
+  try {
+    const r = await api('login', { name: $('#lgName').value, pin: $('#lgPin').value });
+    S.token = r.token; LS.set('cdb_token', r.token);
+    $('#lgPin').value = '';
+    enterApp(r.user, r.sheets);
+  } catch (err) {
+    $('#lgErr').textContent = err.message;
+  } finally { btn.disabled = false; btn.textContent = '登入'; }
+});
+function logout(expired) {
+  if (!expired && S.token) api('logout').catch(() => {});
+  S.token = null; S.data = {}; LS.del('cdb_token');
+  closeModal();
+  showLogin(expired ? '登入已過期，請重新登入' : '');
+}
+$('#logoutBtn').onclick = () => logout(false);
+
+function enterApp(user, sheets) {
+  S.user = user; S.sheets = sheets;
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#who').textContent = user.name + (user.canEdit ? '' : '（唯讀）');
+  if (!sheets.includes(S.sheet)) S.sheet = sheets[0];
+  $('#tabs').innerHTML = sheets.map(s => `<button class="tab" data-s="${esc(s)}">${esc(s)}</button>`).join('');
+  if (!sheets.length) { $('#content').innerHTML = '<div class="empty">這個帳號沒有可查看的分頁</div>'; return; }
+  selectSheet(S.sheet);
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) selectSheet(b.dataset.s); });
+
+async function selectSheet(name, force) {
+  S.sheet = name; LS.set('cdb_sheet', name);
+  S.search = ''; $('#search').value = ''; S.group = -1; S.tagFilters = {};
+  S.sortCol = ''; S.sortDir = 1;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.s === name));
+  if (!S.data[name] || force) {
+    $('#content').innerHTML = '<div class="empty"><span class="spinner"></span> 載入中…</div>';
+    $('#stats').innerHTML = $('#chips').innerHTML = $('#filters').innerHTML = $('#count').textContent = '';
+    try {
+      const r = await api('list', { sheet: name });
+      S.data[name] = { headers: r.headers, rows: r.rows, canEdit: r.canEdit, meta: analyze(r.headers, r.rows) };
+    } catch (err) {
+      $('#content').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+      return;
+    }
+  }
+  if (S.sheet !== name) return;
+  buildControls(); render();
+}
+$('#refreshBtn').onclick = () => S.sheet && selectSheet(S.sheet, true);
+
+/* ---------------- 工具列 ---------------- */
+function cur() { return S.data[S.sheet]; }
+
+function buildControls() {
+  const d = cur(), m = d.meta;
+  $('#addBtn').classList.toggle('hidden', !d.canEdit);
+  // 篩選下拉：tag 欄位（狀態欄已有快速切換時仍保留，方便精確選）
+  const tagCols = d.headers.filter(h => m.cols[h] === 'tag');
+  $('#filters').innerHTML = tagCols.map(h => {
+    const opts = [...new Set(d.rows.flatMap(r => isEmpty(r[h]) ? [] : splitTags(r[h])))].sort((a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
+    return `<select data-f="${esc(h)}" aria-label="${esc(h)}"><option value="">${esc(h)}：全部</option>${opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+  }).join('');
+  // 排序
+  const sortable = d.headers.filter(h => !['hidden', 'image'].includes(m.cols[h]));
+  $('#sortCol').innerHTML = '<option value="">排序：預設</option>' + sortable.map(h => `<option value="${esc(h)}">排序：${esc(h)}</option>`).join('');
+  $('#sortDir').textContent = S.sortDir > 0 ? '↑' : '↓';
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.v === S.view));
+}
+
+$('#filters').addEventListener('change', e => { const s = e.target.closest('select'); if (s) { S.tagFilters[s.dataset.f] = s.value; render(); } });
+$('#search').addEventListener('input', e => { S.search = e.target.value.trim().toLowerCase(); render(); });
+$('#sortCol').onchange = e => { S.sortCol = e.target.value; render(); };
+$('#sortDir').onclick = () => { S.sortDir *= -1; $('#sortDir').textContent = S.sortDir > 0 ? '↑' : '↓'; render(); };
+$('#viewSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.view = b.dataset.v; LS.set('cdb_view', S.view);
+  document.querySelectorAll('#viewSeg button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+$('#chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if (c) { S.group = Number(c.dataset.g); render(); } });
+
+/* ---------------- 篩選 + 排序 ---------------- */
+function inGroup(row, g) {
+  const m = cur().meta;
+  return CFG.STATUS_GROUPS[m.status][g].values.includes(String(row[m.status]).trim());
+}
+function visibleRows() {
+  const d = cur(), m = d.meta;
+  let rows = d.rows.filter(r => {
+    if (S.group >= 0 && m.status && !inGroup(r, S.group)) return false;
+    for (const [col, val] of Object.entries(S.tagFilters)) {
+      if (val && !splitTags(r[col] || '').includes(val)) return false;
+    }
+    if (S.search) {
+      const hay = d.headers.filter(h => m.cols[h] !== 'image').map(h => r[h]).join(' ').toLowerCase();
+      if (!S.search.split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    return true;
+  });
+  if (S.sortCol) {
+    const t = m.cols[S.sortCol], c = S.sortCol;
+    const numeric = ['money', 'number'].includes(t);
+    rows = rows.slice().sort((a, b) => {
+      const x = a[c], y = b[c];
+      if (isEmpty(x) && isEmpty(y)) return 0;
+      if (isEmpty(x)) return 1;
+      if (isEmpty(y)) return -1;
+      const r = numeric ? Number(x) - Number(y) : String(x).localeCompare(String(y), 'zh-Hant', { numeric: true });
+      return r * S.sortDir;
+    });
+  } else if (S.sortDir < 0) rows = rows.slice().reverse();
+  return rows;
+}
+
+/* ---------------- 畫面 ---------------- */
+function render() {
+  const d = cur(); if (!d) return;
+  const m = d.meta;
+  // 狀態快速切換
+  if (m.status) {
+    const groups = CFG.STATUS_GROUPS[m.status];
+    const counts = groups.map((g, i) => d.rows.filter(r => inGroup(r, i)).length);
+    $('#chips').innerHTML = `<button class="chip ${S.group < 0 ? 'on' : ''}" data-g="-1">全部<small>${d.rows.length}</small></button>` +
+      groups.map((g, i) => `<button class="chip ${S.group === i ? 'on' : ''}" data-g="${i}">${esc(g.label)}<small>${counts[i]}</small></button>`).join('');
+  } else $('#chips').innerHTML = '';
+
+  const rows = visibleRows();
+  // 統計（依目前篩選結果）
+  $('#stats').innerHTML = CFG.STATS.filter(s => !s.column || d.headers.includes(s.column)).map(s => {
+    let v;
+    if (s.type === 'sum') v = rows.reduce((a, r) => a + (Number(r[s.column]) || 0), 0);
+    else if (s.values) v = rows.filter(r => s.values.includes(String(r[s.column]).trim())).length;
+    else v = rows.length;
+    return `<div class="stat"><b>${s.money ? money(v) : v.toLocaleString('zh-TW')}</b><span>${esc(s.label)}</span></div>`;
+  }).join('');
+  $('#count').textContent = rows.length === d.rows.length ? `共 ${rows.length} 筆` : `顯示 ${rows.length} / ${d.rows.length} 筆`;
+
+  if (!rows.length) { $('#content').innerHTML = `<div class="empty">${d.rows.length ? '沒有符合條件的資料' : '這個分頁還沒有資料'}</div>`; return; }
+  $('#content').innerHTML = S.view === 'table' ? renderTable(rows) : renderGrid(rows);
+}
+
+function cardTags(r) {
+  const d = cur(), m = d.meta;
+  let cols = d.headers.filter(h => m.cols[h] === 'tag' && !CFG.DETAIL_ONLY.includes(h));
+  if (m.status) cols = [m.status].concat(cols.filter(c => c !== m.status));
+  const tags = cols.flatMap(c => isEmpty(r[c]) ? [] : splitTags(r[c]));
+  return tags.slice(0, 6).map(tagHtml).join('');
+}
+
+function renderGrid(rows) {
+  const m = cur().meta;
+  const priceCol = cur().headers.find(h => m.cols[h] === 'money' && !CFG.DETAIL_ONLY.includes(h));
+  return '<div class="grid">' + rows.map(r => {
+    const title = r[m.title];
+    const u = m.image && imgUrl(r[m.image]);
+    const flags = CFG.FLAG_COLUMNS.filter(f => truthy(r[f]));
+    return `<div class="card" data-id="${esc(r._id)}">
+      <div class="cover">${u ? `<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-n="${esc(title)}">` : placeholder(title)}
+        ${flags.length ? `<span class="flag">${flags.map(esc).join('・')}</span>` : ''}</div>
+      <div class="card-body">
+        <div class="card-title">${esc(title || '（未命名）')}</div>
+        <div class="tags">${cardTags(r)}</div>
+        ${priceCol && !isEmpty(r[priceCol]) ? `<div class="card-sub">${money(r[priceCol])}</div>` : ''}
+      </div></div>`;
+  }).join('') + '</div>';
+}
+
+function renderTable(rows) {
+  const d = cur(), m = d.meta;
+  const cols = d.headers.filter(h => !['hidden', 'image', 'title'].includes(m.cols[h]));
+  const arrow = h => S.sortCol === h ? (S.sortDir > 0 ? ' ↑' : ' ↓') : '';
+  return `<div class="table-wrap"><table><thead><tr>
+    ${m.image ? '<th></th>' : ''}<th data-c="${esc(m.title)}">${esc(m.title)}${arrow(m.title)}</th>
+    ${cols.map(h => `<th data-c="${esc(h)}">${esc(h)}${arrow(h)}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(r => {
+      const u = m.image && imgUrl(r[m.image]);
+      return `<tr data-id="${esc(r._id)}">
+        ${m.image ? `<td>${u ? `<img class="thumb" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-n="${esc(r[m.title])}">` : `<div class="thumb">${placeholder(r[m.title], 'thumb')}</div>`}</td>` : ''}
+        <td class="title">${esc(r[m.title])}</td>
+        ${cols.map(h => `<td class="${['money', 'number'].includes(m.cols[h]) ? 'num' : ''}">${isEmpty(r[h]) ? '' : fmt(m.cols[h], r[h])}</td>`).join('')}
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+// 圖片失效時換成佔位圖
+document.addEventListener('error', e => {
+  const img = e.target;
+  if (img.tagName === 'IMG' && img.dataset.n !== undefined) img.outerHTML = img.classList.contains('thumb') ? `<div class="thumb">${placeholder(img.dataset.n, 'thumb')}</div>` : placeholder(img.dataset.n);
+}, true);
+
+$('#content').addEventListener('click', e => {
+  const th = e.target.closest('th[data-c]');
+  if (th) {
+    if (S.sortCol === th.dataset.c) S.sortDir *= -1; else { S.sortCol = th.dataset.c; S.sortDir = 1; }
+    $('#sortCol').value = S.sortCol; $('#sortDir').textContent = S.sortDir > 0 ? '↑' : '↓';
+    render(); return;
+  }
+  if (e.target.closest('a')) return;
+  const el = e.target.closest('[data-id]');
+  if (el) openDetail(el.dataset.id);
+});
+
+/* ---------------- 詳細 / 編輯 ---------------- */
+let detailPaste = null;   // 詳細頁開著時，Ctrl+V 貼上截圖直接換縮圖
+document.addEventListener('paste', e => {
+  if (detailPaste && !$('#modal').classList.contains('hidden') && !$('#editForm')) detailPaste(e);
+});
+function openModal(html) { detailPaste = null; $('#dialog').innerHTML = html; $('#modal').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeModal() { $('#modal').classList.add('hidden'); document.body.style.overflow = ''; }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' || e.target.closest('[data-close]')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function openDetail(id) {
+  const d = cur(), m = d.meta;
+  const r = d.rows.find(x => String(x._id) === String(id)); if (!r) return;
+  const u = m.image && imgUrl(r[m.image]);
+  const fields = d.headers.filter(h => !['hidden', 'title'].includes(m.cols[h]) && h !== m.image);
+  openModal(`<div class="dlg-head"><h2>${esc(r[m.title] || '（未命名）')}</h2><button class="btn" data-close>✕</button></div>
+    <div class="dlg-body">
+      ${u ? `<img class="detail-img" src="${esc(u)}" alt="" referrerpolicy="no-referrer">` : ''}
+      <dl class="fields">${fields.map(h => `<dt>${esc(h)}</dt><dd>${fmt(m.cols[h], r[h])}</dd>`).join('')}</dl>
+    </div>
+    ${d.canEdit ? `<div class="dlg-foot"><button class="btn danger" id="delBtn">刪除</button><span class="spacer"></span>${m.image ? '<button class="btn" id="pasteBtn" title="也可以直接按 Ctrl+V">📋 貼上截圖</button><button class="btn" id="camBtn">📷 換縮圖</button><input type="file" accept="image/*" capture="environment" id="camFile" hidden>' : ''}<button class="btn primary" id="editBtn">編輯</button></div>` : ''}`);
+  if (d.canEdit) {
+    $('#editBtn').onclick = () => openForm(r);
+    $('#delBtn').onclick = () => removeRow(r);
+    if (m.image) {
+      const replace = async (f, btn) => {
+        const label = btn.textContent; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 上傳中';
+        try {
+          const url = await uploadPhoto(f, r[m.title]);
+          await api('update', { sheet: S.sheet, id: r._id, values: { [m.image]: url } });
+          r[m.image] = url;
+          render(); openDetail(r._id); toast('縮圖已更新');
+        } catch (err) { btn.disabled = false; btn.textContent = label; toast(err.message); }
+      };
+      $('#camBtn').onclick = () => $('#camFile').click();
+      $('#camFile').onchange = e => { const f = e.target.files[0]; if (f) replace(f, $('#camBtn')); };
+      $('#pasteBtn').onclick = async () => {
+        try { replace(await readClipboardImage(), $('#pasteBtn')); } catch (err) { toast(err.message); }
+      };
+      detailPaste = e => { const f = clipboardImage(e); if (f) { e.preventDefault(); replace(f, $('#pasteBtn')); } };
+    }
+  }
+}
+
+function openForm(r) {
+  const d = cur(), m = d.meta, isNew = !r;
+  r = r || {};
+  const fields = d.headers.filter(h => m.cols[h] !== 'hidden');
+  const input = h => {
+    const t = m.cols[h], v = isEmpty(r[h]) ? '' : r[h], name = `name="${esc(h)}"`;
+    if (t === 'bool') return `<label class="check"><input type="checkbox" ${name} ${truthy(v) ? 'checked' : ''}> ${esc(h)}</label>`;
+    let ctl;
+    if (t === 'money' || t === 'number') ctl = `<input type="number" step="any" ${name} value="${esc(v)}">`;
+    else if (t === 'date') ctl = `<input type="date" ${name} value="${esc(String(v).slice(0, 10))}">`;
+    else if (t === 'tag') {
+      const opts = [...new Set(d.rows.flatMap(x => isEmpty(x[h]) ? [] : splitTags(x[h])))];
+      ctl = `<input ${name} value="${esc(v)}" list="dl-${esc(h)}" placeholder="多個值用逗號分隔"><datalist id="dl-${esc(h)}">${opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
+    } else if (t === 'image') {
+      const u = imgUrl(v);
+      ctl = `<input ${name} value="${esc(v)}" placeholder="貼上圖片網址，或直接 Ctrl+V 貼上截圖" data-img autocomplete="off">
+        <div class="img-tools"><button type="button" class="btn" data-paste>📋 貼上截圖</button><button type="button" class="btn" data-cam>📷 拍照／選照片</button><button type="button" class="btn" data-search>🔍 Google 搜圖</button><input type="file" accept="image/*" capture="environment" data-file hidden></div>
+        <div class="img-note" data-note></div>${u ? `<img class="img-prev" src="${esc(u)}" referrerpolicy="no-referrer">` : ''}`;
+    } else if (String(v).length > 60 || /備註|說明|note|描述/i.test(h)) ctl = `<textarea ${name}>${esc(v)}</textarea>`;
+    else ctl = `<input ${name} value="${esc(v)}" ${t === 'title' ? 'required' : ''}>`;
+    const wide = ['title', 'image'].includes(t) || ctl.startsWith('<textarea');
+    return `<label class="${wide ? 'wide' : ''}">${esc(h)}${ctl}</label>`;
+  };
+  openModal(`<form id="editForm"><div class="dlg-head"><h2>${isNew ? '新增資料' : '編輯：' + esc(r[m.title] || '')}</h2><button type="button" class="btn" data-close>✕</button></div>
+    <div class="dlg-body"><div class="form-grid">${fields.map(input).join('')}</div></div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" data-close>取消</button><button class="btn primary" id="saveBtn">儲存</button></div></form>`);
+  const form = $('#editForm');
+  const imgInput = form.querySelector('[data-img]');
+  const setImage = url => { imgInput.value = url; imgInput.dispatchEvent(new Event('input', { bubbles: true })); };
+  form.addEventListener('input', e => {
+    if (e.target.dataset.img === undefined) return;
+    let p = e.target.parentNode.querySelector('.img-prev');
+    const u = imgUrl(e.target.value);
+    if (!u) { if (p) p.remove(); return; }
+    if (!p) { p = document.createElement('img'); p.className = 'img-prev'; p.referrerPolicy = 'no-referrer'; e.target.parentNode.appendChild(p); }
+    p.src = u;
+  });
+  let pending = null;   // 圖片還在上傳時，按儲存會先等它完成
+  if (imgInput) {
+    const note = form.querySelector('[data-note]');
+    const fileIn = form.querySelector('[data-file]');
+    const field = n => form.elements[n] ? form.elements[n].value.trim() : '';
+    const run = (msg, job) => {
+      note.innerHTML = `<span class="spinner"></span> ${esc(msg)}`;
+      pending = job().then(url => { setImage(url); note.textContent = '✓ 已存到雲端硬碟「收藏資料庫圖片」'; })
+        .catch(err => { note.textContent = err.message; })
+        .finally(() => { pending = null; });
+      return pending;
+    };
+    const fromFile = f => run('上傳圖片到雲端硬碟中…', () => uploadPhoto(f, field(m.title)));
+    // 1. 圖片網址：貼上或打完網址後，後台下載存到雲端硬碟
+    const fromUrl = () => {
+      const u = imgInput.value.trim();
+      if (!needsImport(u) || pending) return;
+      run('下載圖片並存到雲端硬碟中…', () => api('saveImageUrl', { url: u, name: field(m.title) }).then(r => r.url));
+    };
+    imgInput.addEventListener('change', fromUrl);
+    // 2. 截圖貼上：在表單任何地方按 Ctrl+V
+    form.addEventListener('paste', e => {
+      const f = clipboardImage(e);
+      if (f) { e.preventDefault(); fromFile(f); }
+      else if (e.target === imgInput) setTimeout(fromUrl, 0);
+    });
+    form.querySelector('[data-paste]').onclick = async () => {
+      try { fromFile(await readClipboardImage()); }
+      catch (err) { note.textContent = err.message; }
+    };
+    // 3. 拍照／選照片
+    form.querySelector('[data-cam]').onclick = () => fileIn.click();
+    fileIn.onchange = () => { const f = fileIn.files[0]; fileIn.value = ''; if (f) fromFile(f); };
+    form.querySelector('[data-search]').onclick = () => {
+      const q = field(m.title);
+      if (!q) { toast('請先填名稱'); return; }
+      window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q), '_blank', 'noopener');
+    };
+  }
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (pending) { $('#saveBtn').innerHTML = '<span class="spinner"></span>'; await pending; }
+    const values = {};
+    fields.forEach(h => {
+      const el = form.elements[h];
+      values[h] = el.type === 'checkbox' ? el.checked : el.value.trim();
+    });
+    form.classList.add('loading'); $('#saveBtn').innerHTML = '<span class="spinner"></span>';
+    try {
+      if (isNew) {
+        const res = await api('add', { sheet: S.sheet, values });
+        d.rows.push(Object.assign({ _id: res.id }, values));
+      } else {
+        await api('update', { sheet: S.sheet, id: r._id, values });
+        Object.assign(r, values);
+      }
+      d.meta = analyze(d.headers, d.rows);
+      closeModal(); buildControls(); render(); toast(isNew ? '已新增' : '已儲存');
+    } catch (err) {
+      form.classList.remove('loading'); $('#saveBtn').textContent = '儲存';
+      toast(err.message);
+    }
+  });
+}
+
+/* ---------------- 拍照上傳 ---------------- */
+function resizeImage(file, max) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);   // 透明截圖轉 JPEG 時用白底
+      g.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => reject(new Error('無法讀取這張圖片'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function uploadPhoto(file, name) {
+  const dataUrl = await resizeImage(file, 1000);   // 縮到最長邊 1000px，手機上傳比較快
+  const r = await api('uploadImage', { dataUrl, name: name || 'photo' });
+  return r.url;
+}
+// 網址需要下載存到雲端硬碟嗎？（已經在雲端硬碟或是內嵌圖就不用）
+function needsImport(u) {
+  return /^https?:\/\//i.test(u) && !/drive\.google\.com|googleusercontent\.com/i.test(u);
+}
+// 從 Ctrl+V 的貼上事件取出圖片
+function clipboardImage(e) {
+  const items = [...((e.clipboardData && e.clipboardData.items) || [])];
+  const it = items.find(i => i.kind === 'file' && i.type.startsWith('image/'));
+  return it ? it.getAsFile() : null;
+}
+// 「📋 貼上截圖」按鈕：讀剪貼簿裡的圖片
+async function readClipboardImage() {
+  if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('這個瀏覽器不支援按鈕貼上，請直接按 Ctrl+V（Mac：⌘+V）。');
+  let items;
+  try { items = await navigator.clipboard.read(); }
+  catch (err) { throw new Error('沒有剪貼簿權限，請直接按 Ctrl+V（Mac：⌘+V）。'); }
+  for (const it of items) {
+    const type = it.types.find(t => t.startsWith('image/'));
+    if (type) return new File([await it.getType(type)], 'paste.png', { type });
+  }
+  throw new Error('剪貼簿裡沒有圖片。先截圖（Win+Shift+S／⌘+Shift+4）或在圖上按右鍵「複製圖片」。');
+}
+
+async function removeRow(r) {
+  const d = cur(), m = d.meta;
+  if (!confirm(`確定要刪除「${r[m.title] || ''}」嗎？\n（會從 Google Sheet 刪掉這一列）`)) return;
+  try {
+    await api('delete', { sheet: S.sheet, id: r._id });
+    d.rows = d.rows.filter(x => x !== r);
+    closeModal(); buildControls(); render(); toast('已刪除');
+  } catch (err) { toast(err.message); }
+}
+$('#addBtn').onclick = () => openForm(null);
+
+/* ---------------- 示範模式的假後端 ---------------- */
+const Mock = {
+  sessions: {},
+  users: [{ name: 'admin', pin: '1234', sheets: '*', canEdit: true }, { name: 'friend', pin: '0000', sheets: '組裝模型,水貼', canEdit: false }],
+  db: {
+    '組裝模型': {
+      headers: ['名稱', '圖片', '廠牌', '系列', '子系列', '版本', '組裝狀態', '購入日期', '購入價格', '賣價', '流水號', '重複', '備註'],
+      rows: [
+        ['RX-78-2 Gundam Ver.3.0', '', 'Bandai', 'MG', 'UC', '一般發售', 'Done', '2024-03-02', 1500, '', 'M-001', false, ''],
+        ['GF13-009NF Gundam Rose', '', 'Bandai', 'HG', 'G Gundam', 'PB', 'Not started', '2025-01-15', 900, '', 'M-002', true, ''],
+        ['GF13-009NF Gundam Rose', '', 'Bandai', 'HG', 'G Gundam', 'PB', '托賣中', '2025-01-15', 900, '', 'M-003', true, ''],
+        ['Aerial', '', 'Bandai', 'HG', '水星魔女', '一般發售', 'In progress', '2023-11-20', 600, '', 'M-004', false, ''],
+        ['Strike Freedom', '', 'Bandai', 'RG', 'Seed', '一般發售', '爛尾中', '2022-08-01', 1100, '', 'M-005', false, '肩甲斷掉'],
+        ['EVA 初號機', '', 'Bandai', 'RG', 'EVA', '一般發售', '已賣出', '2021-05-09', 1300, 1500, 'M-006', false, ''],
+        ['Frame Arms Girl Stylet', '', 'Kotobukiya', '1:1', '', '初回限定', '交換出', '2020-12-24', 1800, '', 'M-007', false, ''],
+        ['Sazabi Ver.Ka', '', 'Bandai', 'MG', 'UC, 逆襲的夏亞', 'PB', 'Not started', '2025-06-30', 4200, '', 'M-008', false, '']
+      ]
+    },
+    '水貼': {
+      headers: ['名稱', '圖片', '品牌', '版本', '狀況', '購入日期', '購入價格', '備註'],
+      rows: [
+        ['RG ZEONG用水貼 131', '', 'Bandai', '一般版', '全新', '2023-04-04', 140, ''],
+        ['EVO 警示水貼 001-8', '', 'EVO', '一般版', '少部分使用', '', '', ''],
+        ['大林 MG Sazabi燙金 水貼 UC-35', '', '大林', '燙金版', '全新', '', '', ''],
+        ['MG HG 0080用水貼 053', '', 'Bandai', '一般版', '使用一半', '', 100, ''],
+        ['MG Gundam Exia 水貼 069', '', 'Bandai', '一般版', '幾乎用完', '', '', ''],
+        ['雪焰 MG F90 螢光版 MG-94', '', '雪焰', '螢光版', '全新', '2023-05-12', '', ''],
+        ['萬代 DX系列水貼 一年戰爭 DX-01', '', 'Bandai', '限定版', '少部分使用', '', 450, '']
+      ]
+    },
+    '工具': {
+      headers: ['名稱', '圖片', '品牌', '類型', '狀態', '數量', '購入日期', '購入價格', '備註'],
+      rows: [
+        ['單刃斜口鉗', '', 'GodHand', '剪鉗', '使用中', 1, '2023-05-20', 1800, ''],
+        ['水貼軟化劑', '', 'Mr.Hobby', '耗材', '使用中', 1, '2024-01-08', 120, ''],
+        ['水貼專用鑷子', '', 'Tamiya', '夾具', '備用', 2, '2021-11-11', 280, ''],
+        ['海綿砂紙 #800', '', 'GodHand', '打磨', '用完', 3, '2022-03-03', 150, '']
+      ]
+    }
+  },
+  init() {
+    if (this.ready) return; this.ready = true;
+    let n = 0;
+    for (const k in this.db) {
+      const t = this.db[k];
+      t.rows = t.rows.map(a => { const o = { _id: 'd' + (++n) }; t.headers.forEach((h, i) => o[h] = a[i]); return o; });
+    }
+    this.n = n;
+  },
+  async call(b) {
+    this.init();
+    await new Promise(r => setTimeout(r, 150));
+    const fail = (e, code) => ({ ok: false, error: e, code });
+    if (b.action === 'login') {
+      const u = this.users.find(x => x.name.toLowerCase() === String(b.name).trim().toLowerCase() && x.pin === String(b.pin).trim());
+      if (!u) return fail('名稱或 PIN 錯誤');
+      const token = 'demo-' + Math.random().toString(36).slice(2);
+      this.sessions[token] = u;
+      return { ok: true, token, user: { name: u.name, canEdit: u.canEdit }, sheets: this.allowed(u) };
+    }
+    if (b.action === 'logout') { delete this.sessions[b.token]; return { ok: true }; }
+    const u = this.sessions[b.token];
+    if (!u) return fail('登入已過期，請重新登入', 'AUTH');
+    if (b.action === 'meta') return { ok: true, user: { name: u.name, canEdit: u.canEdit }, sheets: this.allowed(u) };
+    // 示範模式沒有雲端硬碟：網址原樣傳回，截圖／照片直接用內嵌圖
+    if (b.action === 'saveImageUrl') return u.canEdit ? { ok: true, url: b.url } : fail('這個帳號沒有編輯權限');
+    if (b.action === 'uploadImage') return u.canEdit ? { ok: true, url: b.dataUrl } : fail('這個帳號沒有編輯權限');
+    const t = this.db[b.sheet];
+    if (!t || !this.allowed(u).includes(b.sheet)) return fail('沒有權限查看「' + b.sheet + '」');
+    if (b.action === 'list') return { ok: true, headers: t.headers, rows: JSON.parse(JSON.stringify(t.rows)), canEdit: u.canEdit };
+    if (!u.canEdit) return fail('這個帳號沒有編輯權限');
+    if (b.action === 'add') { const id = 'd' + (++this.n); t.rows.push(Object.assign({ _id: id }, b.values)); return { ok: true, id }; }
+    const row = t.rows.find(r => r._id === b.id);
+    if (!row) return fail('找不到這筆資料');
+    if (b.action === 'update') { Object.assign(row, b.values); return { ok: true, id: b.id }; }
+    if (b.action === 'delete') { t.rows.splice(t.rows.indexOf(row), 1); return { ok: true, id: b.id }; }
+    return fail('未知的動作');
+  },
+  allowed(u) { return u.sheets === '*' ? Object.keys(this.db) : u.sheets.split(/\s*[,，、]\s*/).filter(s => this.db[s]); }
+};
+
+/* ---------------- 啟動 ---------------- */
+document.title = CFG.TITLE; $('#appTitle').textContent = CFG.TITLE; $('#loginTitle').textContent = CFG.TITLE;
+(async function boot() {
+  if (S.token && !(DEMO && !S.token.startsWith('demo-'))) {
+    try { const r = await api('meta'); enterApp(r.user, r.sheets); return; } catch (e) { /* 過期 → 顯示登入 */ }
+  }
+  showLogin();
+})();
+})();
+</script>
+</body>
+</html>
