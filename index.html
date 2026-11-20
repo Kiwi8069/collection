@@ -50,8 +50,19 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px so
 .tabs{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;gap:4px;overflow-x:auto}
 .tab{border:0;background:none;padding:8px 12px;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap}
 .tab.on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
-.hdr-tools{max-width:1280px;margin:0 auto;padding:14px 16px 0}
-.hdr-tools .toolbar{margin-bottom:12px}
+.hdr-tools{max-width:1280px;margin:0 auto;padding:8px 16px 0}
+/* 固定表頭精簡版：字小一點、間距縮小 */
+header .bar{padding:6px 16px}
+header .bar h1{font-size:16px}
+header .btn,header input,header select{padding:4px 9px;font-size:13.5px}
+header .tab{padding:5px 12px;font-size:14px}
+header .stats{gap:8px;margin-bottom:8px}
+header .stat{padding:5px 12px;display:flex;align-items:baseline;gap:8px;box-shadow:none;border:1px solid var(--line)}
+header .stat b{font-size:16px;display:inline}
+header .chips{margin-bottom:8px}
+header .chip{padding:2px 10px;font-size:12.5px}
+header .seg button{padding:4px 9px;font-size:13px}
+.hdr-tools .toolbar{margin-bottom:8px;gap:6px}
 main{max-width:1280px;margin:0 auto;padding:12px 16px 16px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
 .stat{background:var(--panel);border-radius:10px;padding:10px 14px;box-shadow:var(--shadow)}
@@ -126,13 +137,25 @@ td.title{font-weight:600;white-space:normal;min-width:180px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media (max-width:600px){
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .card-body{padding:8px 9px 10px}
-  .toolbar select{max-width:none;flex:1 1 40%}
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .card{border-radius:8px}
+  .card-body{padding:5px 6px 7px}
+  .card-title{font-size:11.5px;margin-bottom:3px}
+  .tag{font-size:9.5px;padding:0 4px}
+  .tags{gap:2px}
+  .card-sub{font-size:10.5px;margin-top:3px}
+  .flag{top:4px;left:4px;font-size:9.5px;padding:1px 5px}
+  .ph{font-size:28px}
+  main{padding:8px 8px 16px}
+  .hdr-tools{padding:6px 8px 0}
+  header .bar,header .tabs{padding-left:8px;padding-right:8px}
+  header .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:6px}
+  header .chips{flex-wrap:nowrap;overflow-x:auto;margin-bottom:6px}
+  header .chip{flex:none}
+  .toolbar select{max-width:none;flex:1 1 30%}
   .who{display:none}
   .form-grid{grid-template-columns:1fr}
   .fields{grid-template-columns:90px 1fr}
-  .stat b{font-size:17px}
   header.compact .stats{display:none}   /* 手機往下滑時收起統計，留給清單更多空間 */
 }
 </style>
@@ -194,13 +217,26 @@ const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS
 const DEMO = !CFG.API_URL || /[?&]demo=1/.test(location.search);
 // 手機往下滑時把固定表頭變精簡（隱藏統計卡），回到頂端再展開
 (function () {
+  // 收起統計卡會讓表頭變矮、整頁變短；瀏覽器的捲動錨定會把 scrollY 拉回 0，
+  // 結果馬上又展開（看起來像沒作用）。所以關掉錨定，自己補償捲動位置。
   const hdr = document.querySelector('#app header');
+  const stats = document.getElementById('stats');
+  const mq = matchMedia('(max-width:600px)');
+  document.documentElement.style.overflowAnchor = 'none';
   let on = false;
-  addEventListener('scroll', () => {
+  function update() {
     const y = window.scrollY;
-    if (!on && y > 120) { on = true; hdr.classList.add('compact'); }
-    else if (on && y < 8) { on = false; hdr.classList.remove('compact'); }
-  }, { passive: true });
+    if (!mq.matches) { if (on) { on = false; hdr.classList.remove('compact'); } return; }
+    const h = stats.offsetHeight;
+    if (!on && y > h + 80) {
+      on = true; hdr.classList.add('compact');
+      window.scrollTo(0, Math.max(0, y - h - 6));   // 內容不跳動
+    } else if (on && y < 4) {
+      on = false; hdr.classList.remove('compact');
+    }
+  }
+  addEventListener('scroll', update, { passive: true });
+  mq.addEventListener ? mq.addEventListener('change', update) : mq.addListener(update);
 })();
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
