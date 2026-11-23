@@ -219,7 +219,7 @@ td.title{font-weight:600;white-space:normal;min-width:180px}
 <script>
 (function () {
 'use strict';
-const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [], FIELD_OPTIONS: {} }, window.APP_CONFIG || {});
+const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [], FIELD_OPTIONS: {}, AUTO_FIELDS: {} }, window.APP_CONFIG || {});
 const DEMO = !CFG.API_URL || /[?&]demo=1/.test(location.search);
 // 手機往下滑時把固定表頭變精簡（隱藏統計卡），回到頂端再展開
 (function () {
@@ -696,7 +696,9 @@ function openPosEditor(r) {
 function openForm(r) {
   const d = cur(), m = d.meta, isNew = !r;
   r = r || {};
-  const fields = d.headers.filter(h => m.cols[h] !== 'hidden');
+  const auto = CFG.AUTO_FIELDS[S.sheet] || {};   // 後端自動編號的欄位，不放進表單
+  const fields = d.headers.filter(h => m.cols[h] !== 'hidden' && !(h in auto));
+  const needed = isNew ? d.headers.filter(h => h in auto).map(h => auto[h]) : [];   // 新增時一定要選，才知道編哪一組號
   const input = h => {
     const t = m.cols[h], v = isEmpty(r[h]) ? '' : r[h], name = `name="${esc(h)}"`;
     if (t === 'bool') return `<label class="check"><input type="checkbox" ${name} ${truthy(v) ? 'checked' : ''}> ${esc(h)}</label>`;
@@ -709,7 +711,8 @@ function openForm(r) {
       if (!multi) {
         // 單一值的標籤欄：真正的下拉選單，最後一項可以新增其他值
         const cur = String(v), list = ['', ...opts, ...(cur && !opts.includes(cur) ? [cur] : [])];
-        ctl = `<select ${name} data-tagsel>${list.map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${o === '' ? '（未填）' : esc(o)}</option>`).join('')}<option value="__new__">＋ 新增其他…</option></select>`;
+        const must = needed.includes(h);
+        ctl = `<select ${name} data-tagsel ${must ? 'required' : ''}>${list.map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${o === '' ? (must ? '請選擇…' : '（未填）') : esc(o)}</option>`).join('')}<option value="__new__">＋ 新增其他…</option></select>`;
       } else {
         // 可以放多個值（逗號分隔）的欄位：文字框＋建議清單，點進去時顯示全部選項
         ctl = `<input ${name} value="${esc(v)}" list="dl-${esc(h)}" placeholder="多個值用逗號分隔" data-multi autocomplete="off"><datalist id="dl-${esc(h)}">${opts.map(o => `<option value="${esc(o)}">`).join('')}</datalist>`;
@@ -804,10 +807,12 @@ function openForm(r) {
       values[h] = el.type === 'checkbox' ? el.checked : el.value.trim();
     });
     form.classList.add('loading'); $('#saveBtn').innerHTML = '<span class="spinner"></span>';
+    let serial = '';
     try {
       if (isNew) {
         const res = await api('add', { sheet: S.sheet, values });
-        const row = Object.assign({ _id: res.id }, values);
+        const row = Object.assign({ _id: res.id }, values, res.auto);
+        serial = Object.values(res.auto || {}).filter(Boolean).join('、');
         d.rows.push(row);
         const guard = textGuard(row);   // 再用更新寫一次，確保 1:12 這類值存成文字
         if (Object.keys(guard).length) await updateRow(row, guard).catch(() => toast('已新增，但請重新開啟確認比例／流水號'));
@@ -816,7 +821,7 @@ function openForm(r) {
         Object.assign(r, values);
       }
       d.meta = analyze(d.headers, d.rows);
-      closeModal(); buildControls(); render(); toast(isNew ? '已新增' : '已儲存');
+      closeModal(); buildControls(); render(); toast(isNew ? '已新增' + (serial ? '：' + serial : '') : '已儲存');
     } catch (err) {
       form.classList.remove('loading'); $('#saveBtn').textContent = '儲存';
       toast(err.message);
