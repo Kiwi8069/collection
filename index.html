@@ -439,8 +439,9 @@ function optionsFor(h) {
 // 0217166、1:12 這類文字，試算表會自動轉成數字或時間。
 // 後端寫入時會整列重寫，所以每次更新都一併送出這些欄位，讓後端標成文字保存。
 function textGuard(r) {
-  const out = {};
+  const out = {}, auto = CFG.AUTO_FIELDS[S.sheet] || {};
   cur().headers.forEach(h => {
+    if (h in auto) return;   // 編號由後端存成文字
     const v = String(isEmpty(r[h]) ? '' : r[h]).trim();
     if (/^0\d+$/.test(v) || /^\d+:\d+(:\d+)?$/.test(v)) out[h] = v;
   });
@@ -696,14 +697,15 @@ function openPosEditor(r) {
 function openForm(r) {
   const d = cur(), m = d.meta, isNew = !r;
   r = r || {};
-  const auto = CFG.AUTO_FIELDS[S.sheet] || {};   // 後端自動編號的欄位，不放進表單
-  const fields = d.headers.filter(h => m.cols[h] !== 'hidden' && !(h in auto));
+  const auto = CFG.AUTO_FIELDS[S.sheet] || {};   // 編號欄：可以自己填，留空由後端自動編號
+  const fields = d.headers.filter(h => m.cols[h] !== 'hidden' || h in auto);
   const needed = isNew ? d.headers.filter(h => h in auto).map(h => auto[h]) : [];   // 新增時一定要選，才知道編哪一組號
   const input = h => {
     const t = m.cols[h], v = isEmpty(r[h]) ? '' : r[h], name = `name="${esc(h)}"`;
     if (t === 'bool') return `<label class="check"><input type="checkbox" ${name} ${truthy(v) ? 'checked' : ''}> ${esc(h)}</label>`;
     let ctl;
-    if (t === 'money' || t === 'number') ctl = `<input type="number" step="any" ${name} value="${esc(v)}">`;
+    if (h in auto) ctl = `<input ${name} value="${esc(v)}" placeholder="留空自動編號" autocomplete="off">`;
+    else if (t === 'money' || t === 'number') ctl = `<input type="number" step="any" ${name} value="${esc(v)}">`;
     else if (t === 'date') ctl = `<input type="date" ${name} value="${esc(String(v).slice(0, 10))}">`;
     else if (t === 'tag') {
       const opts = optionsFor(h);
@@ -805,6 +807,8 @@ function openForm(r) {
     fields.forEach(h => {
       const el = form.elements[h];
       values[h] = el.type === 'checkbox' ? el.checked : el.value.trim();
+      // 編號沒改就不送，避免用舊畫面的編號蓋掉別人剛改的
+      if (!isNew && h in auto && values[h] && values[h] === String(isEmpty(r[h]) ? '' : r[h]).trim()) delete values[h];
     });
     form.classList.add('loading'); $('#saveBtn').innerHTML = '<span class="spinner"></span>';
     let serial = '';
@@ -817,11 +821,12 @@ function openForm(r) {
         const guard = textGuard(row);   // 再用更新寫一次，確保 1:12 這類值存成文字
         if (Object.keys(guard).length) await updateRow(row, guard).catch(() => toast('已新增，但請重新開啟確認比例／流水號'));
       } else {
-        await updateRow(r, values);
-        Object.assign(r, values);
+        const res = await updateRow(r, values);
+        Object.assign(r, values, res.auto);
+        serial = Object.keys(res.auto || {}).filter(h => !values[h] && res.auto[h]).map(h => res.auto[h]).join('、');   // 留空時新編的號碼
       }
       d.meta = analyze(d.headers, d.rows);
-      closeModal(); buildControls(); render(); toast(isNew ? '已新增' + (serial ? '：' + serial : '') : '已儲存');
+      closeModal(); buildControls(); render(); toast((isNew ? '已新增' : '已儲存') + (serial ? '：' + serial : ''));
     } catch (err) {
       form.classList.remove('loading'); $('#saveBtn').textContent = '儲存';
       toast(err.message);
