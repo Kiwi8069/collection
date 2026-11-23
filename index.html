@@ -219,7 +219,7 @@ td.title{font-weight:600;white-space:normal;min-width:180px}
 <script>
 (function () {
 'use strict';
-const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [] }, window.APP_CONFIG || {});
+const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [], FIELD_OPTIONS: {} }, window.APP_CONFIG || {});
 const DEMO = !CFG.API_URL || /[?&]demo=1/.test(location.search);
 // 手機往下滑時把固定表頭變精簡（隱藏統計卡），回到頂端再展開
 (function () {
@@ -430,6 +430,23 @@ $('#refreshBtn').onclick = () => S.sheet && selectSheet(S.sheet, true);
 
 /* ---------------- 工具列 ---------------- */
 function cur() { return S.data[S.sheet]; }
+// 某欄位的全部選項：config 的預設選項排前面，其餘用過的值接在後面
+function optionsFor(h) {
+  const preset = (CFG.FIELD_OPTIONS[S.sheet] || {})[h] || [];
+  const used = [...new Set(cur().rows.flatMap(r => isEmpty(r[h]) ? [] : splitTags(r[h])))].filter(v => !preset.includes(v));
+  return preset.concat(used.sort((a, b) => a.localeCompare(b, 'zh-Hant')));
+}
+// 0217166、1:12 這類文字，試算表會自動轉成數字或時間。
+// 後端寫入時會整列重寫，所以每次更新都一併送出這些欄位，讓後端標成文字保存。
+function textGuard(r) {
+  const out = {};
+  cur().headers.forEach(h => {
+    const v = String(isEmpty(r[h]) ? '' : r[h]).trim();
+    if (/^0\d+$/.test(v) || /^\d+:\d+(:\d+)?$/.test(v)) out[h] = v;
+  });
+  return out;
+}
+const updateRow = (r, values) => api('update', { sheet: S.sheet, id: r._id, values: Object.assign(textGuard(r), values) });
 
 function buildControls() {
   const d = cur(), m = d.meta;
@@ -437,7 +454,7 @@ function buildControls() {
   // 篩選下拉：tag 欄位（狀態欄已有快速切換時仍保留，方便精確選）
   const tagCols = d.headers.filter(h => m.cols[h] === 'tag');
   $('#filters').innerHTML = tagCols.map(h => {
-    const opts = [...new Set(d.rows.flatMap(r => isEmpty(r[h]) ? [] : splitTags(r[h])))].sort((a, b) => String(a).localeCompare(String(b), 'zh-Hant'));
+    const opts = optionsFor(h);
     return `<select data-f="${esc(h)}" aria-label="${esc(h)}"><option value="">${esc(h)}：全部</option>${opts.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
   }).join('');
   // 排序
@@ -609,7 +626,7 @@ function openDetail(id) {
         const label = btn.textContent; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 上傳中';
         try {
           const url = await uploadPhoto(f, r[m.title]);
-          await api('update', { sheet: S.sheet, id: r._id, values: { [m.image]: url } });
+          await updateRow(r, { [m.image]: url });
           r[m.image] = url;
           render(); openDetail(r._id); toast('縮圖已更新');
         } catch (err) { btn.disabled = false; btn.textContent = label; toast(err.message); }
@@ -669,7 +686,7 @@ function openPosEditor(r) {
     const btn = e.target, nv = withPos(r[m.image], p);
     btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 儲存中';
     try {
-      await api('update', { sheet: S.sheet, id: r._id, values: { [m.image]: nv } });
+      await updateRow(r, { [m.image]: nv });
       r[m.image] = nv;
       render(); openDetail(r._id); toast('縮圖位置已更新');
     } catch (err) { btn.disabled = false; btn.textContent = '儲存'; toast(err.message); }
@@ -687,7 +704,7 @@ function openForm(r) {
     if (t === 'money' || t === 'number') ctl = `<input type="number" step="any" ${name} value="${esc(v)}">`;
     else if (t === 'date') ctl = `<input type="date" ${name} value="${esc(String(v).slice(0, 10))}">`;
     else if (t === 'tag') {
-      const opts = [...new Set(d.rows.flatMap(x => isEmpty(x[h]) ? [] : splitTags(x[h])))].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+      const opts = optionsFor(h);
       const multi = d.rows.some(x => !isEmpty(x[h]) && splitTags(x[h]).length > 1);
       if (!multi) {
         // 單一值的標籤欄：真正的下拉選單，最後一項可以新增其他值
@@ -790,9 +807,12 @@ function openForm(r) {
     try {
       if (isNew) {
         const res = await api('add', { sheet: S.sheet, values });
-        d.rows.push(Object.assign({ _id: res.id }, values));
+        const row = Object.assign({ _id: res.id }, values);
+        d.rows.push(row);
+        const guard = textGuard(row);   // 再用更新寫一次，確保 1:12 這類值存成文字
+        if (Object.keys(guard).length) await updateRow(row, guard).catch(() => toast('已新增，但請重新開啟確認比例／流水號'));
       } else {
-        await api('update', { sheet: S.sheet, id: r._id, values });
+        await updateRow(r, values);
         Object.assign(r, values);
       }
       d.meta = analyze(d.headers, d.rows);
@@ -880,15 +900,15 @@ const Mock = {
       ]
     },
     '水貼': {
-      headers: ['名稱', '圖片', '品牌', '版本', '狀況', '購入日期', '購入價格', '備註'],
+      headers: ['名稱', '圖片', '分類', '比例', '品牌', '版本', '狀況', '購入日期', '購入價格', '備註'],
       rows: [
-        ['RG ZEONG用水貼 131', '', 'Bandai', '一般版', '全新', '2023-04-04', 140, ''],
-        ['EVO 警示水貼 001-8', '', 'EVO', '一般版', '少部分使用', '', '', ''],
-        ['大林 MG Sazabi燙金 水貼 UC-35', '', '大林', '燙金版', '全新', '', '', ''],
-        ['MG HG 0080用水貼 053', '', 'Bandai', '一般版', '使用一半', '', 100, ''],
-        ['MG Gundam Exia 水貼 069', '', 'Bandai', '一般版', '幾乎用完', '', '', ''],
-        ['雪焰 MG F90 螢光版 MG-94', '', '雪焰', '螢光版', '全新', '2023-05-12', '', ''],
-        ['萬代 DX系列水貼 一年戰爭 DX-01', '', 'Bandai', '限定版', '少部分使用', '', 450, '']
+        ['RG ZEONG用水貼 131', '', '', '', 'Bandai', '一般版', '全新', '2023-04-04', 140, ''],
+        ['EVO 警示水貼 001-8', '', '', '', 'EVO', '一般版', '少部分使用', '', '', ''],
+        ['大林 MG Sazabi燙金 水貼 UC-35', '', '', '', '大林', '燙金版', '全新', '', '', ''],
+        ['MG HG 0080用水貼 053', '', '', '', 'Bandai', '一般版', '使用一半', '', 100, ''],
+        ['MG Gundam Exia 水貼 069', '', '', '', 'Bandai', '一般版', '幾乎用完', '', '', ''],
+        ['雪焰 MG F90 螢光版 MG-94', '', '', '', '雪焰', '螢光版', '全新', '2023-05-12', '', ''],
+        ['萬代 DX系列水貼 一年戰爭 DX-01', '', '', '', 'Bandai', '限定版', '少部分使用', '', 450, '']
       ]
     },
     '工具': {
