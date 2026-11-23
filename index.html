@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的收藏庫</title>
-<script src="config.js"></script>
+<!-- 每次更新網站（index.html 或 config.js）都要換 v= 後面的版本，瀏覽器才不會用到舊檔 -->
+<script src="config.js?v=20261123-4"></script>
 <style>
 :root{
   --bg:#f6f6f4;--panel:#fff;--text:#1f1f1f;--muted:#6b6b6b;--line:#e4e4e0;--accent:#2f6fde;--accent-text:#fff;
@@ -223,6 +224,26 @@ td.title{font-weight:600;white-space:normal;min-width:180px}
 'use strict';
 const CFG = Object.assign({ API_URL: '', TITLE: '我的收藏庫', STATUS_GROUPS: {}, STATS: [], TAG_COLORS: {}, DETAIL_ONLY: [], FLAG_COLUMNS: [], FIELD_OPTIONS: {}, AUTO_FIELDS: {}, CARD_BADGE: {} }, window.APP_CONFIG || {});
 const DEMO = !CFG.API_URL || /[?&]demo=1/.test(location.search);
+// GitHub Pages 會讓瀏覽器快取 10 分鐘。開啟或切回網頁時檢查版本，有新版就自動重新載入（正在填寫時不打斷）
+(function () {
+  const ver = html => (/config\.js\?v=([\w-]+)/.exec(html) || [])[1];
+  const mine = ver(document.head.innerHTML);
+  let last = 0;
+  async function check() {
+    if (!mine || document.hidden || Date.now() - last < 60000) return;
+    last = Date.now();
+    try {
+      const res = await fetch(location.pathname + location.search, { cache: 'no-cache' });
+      const now = res.ok && ver(await res.text());
+      const busy = !$('#modal').classList.contains('hidden') || [...document.querySelectorAll('#loginForm input')].some(i => i.value) || $('#search').value;
+      if (!now || now === mine || busy || sessionStorage.getItem('cdb_ver') === now) return;
+      sessionStorage.setItem('cdb_ver', now);   // 同一版只自動重新載入一次
+      location.reload();
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', check);
+  setTimeout(check, 0);
+})();
 // 手機往下滑時把固定表頭變精簡（隱藏統計卡），回到頂端再展開
 (function () {
   // 收起統計卡會讓表頭變矮、整頁變短；瀏覽器的捲動錨定會把 scrollY 拉回 0，
