@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的收藏庫</title>
 <!-- 每次更新網站（index.html 或 config.js）都要換 v= 後面的版本，瀏覽器才不會用到舊檔 -->
-<script src="config.js?v=20261124-1"></script>
+<script src="config.js?v=20261124-2"></script>
 <style>
 :root{
   --bg:#f6f6f4;--panel:#fff;--text:#1f1f1f;--muted:#6b6b6b;--line:#e4e4e0;--accent:#2f6fde;--accent-text:#fff;
@@ -35,6 +35,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 /* login */
 #login{min-height:100vh;display:grid;place-items:center;padding:16px}
 .login-box{background:var(--panel);padding:28px;border-radius:14px;box-shadow:var(--shadow);width:100%;max-width:340px}
+#login.over{position:fixed;inset:0;z-index:25;min-height:0;overflow:auto;background:rgba(0,0,0,.6)}   /* 編輯到一半登入過期：蓋在視窗上 */
 .login-box h1{margin:0 0 4px;font-size:22px}
 .login-box p{margin:0 0 18px;color:var(--muted);font-size:13px}
 .login-box label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
@@ -174,13 +175,14 @@ td.title{font-weight:600;white-space:normal;min-width:180px}
 <section id="login" class="hidden">
   <form class="login-box" id="loginForm">
     <h1 id="loginTitle">我的收藏庫</h1>
-    <p>輸入名稱和 PIN 登入</p>
+    <p id="lgHint">輸入名稱和 PIN 登入</p>
     <label for="lgName">名稱</label>
     <input id="lgName" autocomplete="username" required>
     <label for="lgPin">PIN</label>
     <input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password" required>
     <button class="btn primary" id="lgBtn">登入</button>
     <div class="err" id="lgErr"></div>
+    <button type="button" class="btn hidden" id="lgDrop">放棄剛才的內容</button>
     <div class="demo-note hidden" id="demoNote">示範模式（尚未設定 API_URL）：admin / 1234</div>
   </form>
 </section>
@@ -291,7 +293,12 @@ async function api(action, payload) {
     j = await res.json();
   }
   if (!j.ok) {
-    if (j.code === 'AUTH') { logout(true); }
+    if (j.code === 'AUTH') {
+      // 視窗開著時登入過期：保留視窗內容，重新登入後接著做（後端在這之前什麼都還沒寫入）
+      if (S.token && body.token !== S.token) return api(action, payload);   // 等待時別的動作已經重新登入過
+      if (S.user && !$('#modal').classList.contains('hidden')) { await relogin(); return api(action, payload); }
+      logout(true);
+    }
     throw new Error(j.error || '發生錯誤');
   }
   return j;
@@ -392,7 +399,34 @@ function toast(msg) {
 }
 
 /* ---------------- 登入 ---------------- */
+let relog = null;   // 等待重新登入中：{ name, promise, res, rej }
+function relogin() {
+  if (!relog) {
+    relog = { name: S.user.name };
+    relog.promise = new Promise((res, rej) => { relog.res = res; relog.rej = rej; });
+    if (document.activeElement) document.activeElement.blur();
+    $('#app').inert = $('#modal').inert = true;
+    $('#login').classList.add('over'); $('#login').classList.remove('hidden');
+    $('#lgHint').textContent = '登入已過期。你填的內容還在，重新登入後會接著完成剛才的動作';
+    $('#lgErr').textContent = ''; $('#lgDrop').classList.remove('hidden');
+    $('#lgName').value = S.user.name; $('#lgPin').value = '';
+    setTimeout(() => $('#lgPin').focus(), 0);
+  }
+  return relog.promise;
+}
+function endRelogin() {
+  relog = null;
+  $('#app').inert = $('#modal').inert = false;
+  $('#login').classList.remove('over'); $('#login').classList.add('hidden');
+  $('#lgHint').textContent = '輸入名稱和 PIN 登入'; $('#lgDrop').classList.add('hidden');
+}
+$('#lgDrop').onclick = () => {
+  if (!relog || !confirm('還沒儲存的內容會不見，確定要放棄嗎？')) return;
+  const { rej } = relog;
+  logout(true); rej(new Error('登入已過期，請重新登入'));
+};
 function showLogin(msg) {
+  if (relog) endRelogin();
   $('#app').classList.add('hidden'); $('#login').classList.remove('hidden');
   $('#lgErr').textContent = msg || '';
   $('#demoNote').classList.toggle('hidden', !DEMO);
@@ -404,8 +438,13 @@ $('#loginForm').addEventListener('submit', async e => {
   $('#lgErr').textContent = '';
   try {
     const r = await api('login', { name: $('#lgName').value, pin: $('#lgPin').value });
-    S.token = r.token; LS.set('cdb_token', r.token);
     $('#lgPin').value = '';
+    if (relog && r.user.name !== relog.name) {
+      api('logout', { token: r.token }).catch(() => {});
+      throw new Error('請用原本的帳號「' + relog.name + '」登入，才能接著完成');
+    }
+    S.token = r.token; LS.set('cdb_token', r.token);
+    if (relog) { const { res } = relog; S.user = r.user; endRelogin(); res(); return; }
     enterApp(r.user, r.sheets);
   } catch (err) {
     $('#lgErr').textContent = err.message;
@@ -639,7 +678,7 @@ function openModal(html) { detailPaste = modalDirty = null; $('#dialog').innerHT
 function closeModal() { modalDirty = null; $('#modal').classList.add('hidden'); document.body.style.overflow = ''; }
 // 使用者要關視窗（✕、取消、Esc）：有沒存的修改先問，儲存中不能關
 function requestClose() {
-  if ($('#modal').classList.contains('hidden') || $('#dialog .loading')) return;
+  if (relog || $('#modal').classList.contains('hidden') || $('#dialog .loading')) return;
   if (modalDirty && document.activeElement) document.activeElement.blur();   // 多值欄位點進去會暫時清空，離開才還原
   if (modalDirty && modalDirty() && !confirm('還有沒儲存的修改，確定要放棄嗎？')) return;
   closeModal();
