@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>我的收藏庫</title>
 <!-- 每次更新網站（index.html 或 config.js）都要換 v= 後面的版本，瀏覽器才不會用到舊檔 -->
-<script src="config.js?v=20261123-4"></script>
+<script src="config.js?v=20261124-1"></script>
 <style>
 :root{
   --bg:#f6f6f4;--panel:#fff;--text:#1f1f1f;--muted:#6b6b6b;--line:#e4e4e0;--accent:#2f6fde;--accent-text:#fff;
@@ -634,10 +634,25 @@ let detailPaste = null;   // 詳細頁開著時，Ctrl+V 貼上截圖直接換�
 document.addEventListener('paste', e => {
   if (detailPaste && !$('#modal').classList.contains('hidden') && !$('#editForm')) detailPaste(e);
 });
-function openModal(html) { detailPaste = null; $('#dialog').innerHTML = html; $('#modal').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
-function closeModal() { $('#modal').classList.add('hidden'); document.body.style.overflow = ''; }
-$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' || e.target.closest('[data-close]')) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+let modalDirty = null;    // 編輯中的視窗才有：回傳「有沒有還沒存的修改」
+function openModal(html) { detailPaste = modalDirty = null; $('#dialog').innerHTML = html; $('#modal').classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeModal() { modalDirty = null; $('#modal').classList.add('hidden'); document.body.style.overflow = ''; }
+// 使用者要關視窗（✕、取消、Esc）：有沒存的修改先問，儲存中不能關
+function requestClose() {
+  if ($('#modal').classList.contains('hidden') || $('#dialog .loading')) return;
+  if (modalDirty && document.activeElement) document.activeElement.blur();   // 多值欄位點進去會暫時清空，離開才還原
+  if (modalDirty && modalDirty() && !confirm('還有沒儲存的修改，確定要放棄嗎？')) return;
+  closeModal();
+}
+// 點視窗外面：只看資料時可以關，編輯中不關（避免誤觸）。按下和放開都要在外面，拖曳選字不算
+let downOutside = false;
+$('#modal').addEventListener('pointerdown', e => { downOutside = e.target.id === 'modal'; });
+$('#modal').addEventListener('click', e => {
+  if (e.target.closest('[data-close]')) requestClose();
+  else if (e.target.id === 'modal' && downOutside && !modalDirty) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.isComposing) requestClose(); });   // 輸入法選字時的 Esc 不算
+window.addEventListener('beforeunload', e => { if (modalDirty && modalDirty()) { e.preventDefault(); e.returnValue = ''; } });
 
 function openDetail(id) {
   const d = cur(), m = d.meta;
@@ -694,6 +709,8 @@ function openPosEditor(r) {
     zoom.value = p.z; $('#posZv').textContent = p.z.toFixed(2) + '×';
   };
   apply();
+  const before = JSON.stringify(p);
+  modalDirty = () => JSON.stringify(p) !== before;
   let drag = null;
   frame.addEventListener('pointerdown', e => {
     drag = { sx: e.clientX, sy: e.clientY, x: p.x, y: p.y };
@@ -793,6 +810,9 @@ function openForm(r) {
     inp.addEventListener('blur', () => { if (!inp.value && keep !== null) inp.value = keep; keep = null; inp.placeholder = '多個值用逗號分隔'; });
   });
   let pending = null;   // 圖片還在上傳時，按儲存會先等它完成
+  const snap = () => JSON.stringify([...form.elements].filter(el => el.name).map(el => el.type === 'checkbox' ? el.checked : el.value.trim()));
+  const before = snap();
+  modalDirty = () => !!pending || snap() !== before;
   if (imgInput) {
     const note = form.querySelector('[data-note]');
     const fileIn = form.querySelector('[data-file]');
